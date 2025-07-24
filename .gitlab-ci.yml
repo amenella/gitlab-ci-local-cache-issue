@@ -1,0 +1,45 @@
+.template:
+  image: node:latest
+  variables:
+    CACHE_POLICY: pull-push
+  cache:
+    - key: cache-deps
+      paths:
+        - node_modules/
+      policy: $CACHE_POLICY
+    - key: cache-$FOO
+      paths:
+        - $FOO/
+      policy: $CACHE_POLICY
+
+init:
+  extends: .template
+  cache:
+    - !reference [.template, cache]
+    - key: cache-$BAR
+      paths:
+        - $BAR/
+      policy: $CACHE_POLICY
+  variables:
+    FOO: 'foo'
+    BAR: 'bar'
+  script:
+    - npm ci
+    - mkdir $FOO && echo $FOO >> $FOO/$FOO.txt
+    - mkdir $BAR && echo $BAR >> $BAR/$BAR.txt
+    - ls -al
+    - ls -al $FOO
+    - ls -al $BAR
+
+check:
+  extends: .template
+  cache: !reference [init, cache]
+  needs: [init]
+  variables:
+    CACHE_POLICY: pull # read-only cache
+    FOO: 'foo'
+    BAR: 'bar'
+  script:
+    - ls -al
+    - ls -al $FOO
+    - ls -al $BAR
